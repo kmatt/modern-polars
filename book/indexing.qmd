@@ -12,7 +12,7 @@ from pathlib import Path
 from zipfile import ZipFile
 import requests
 
-data_dir = Path("../data") # replace this with a directory of your choice
+data_dir = Path("../data")  # replace this with a directory of your choice
 dest = data_dir / "flights.csv.zip"
 
 if not dest.exists():
@@ -31,13 +31,15 @@ if not dest.exists():
     with ZipFile(dest) as zf:
         zf.extract(zf.filelist[0].filename, path=data_dir)
 
-extracted = data_dir / "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2022_1.csv"
+extracted = (
+    data_dir / "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2022_1.csv"
+)
 ```
 
 ## Read the data
 
 :::{.callout-tip}
-The examples in this book use the [lazy evaluation](https://pola-rs.github.io/polars/user-guide/migration/pandas/#be-lazy)
+The examples in this book use the [lazy evaluation](https://docs.pola.rs/user-guide/migration/pandas/#be-lazy)
 feature of Polars less than you should.
 It's just inconvenient to use the lazy API when displaying dozens of intermediate results for educational purposes.
 :::
@@ -47,7 +49,8 @@ It's just inconvenient to use the lazy API when displaying dozens of intermediat
 
 ``` {python}
 import polars as pl
-pl.Config.set_tbl_rows(5) # don't print too many rows in the book
+
+pl.Config.set_tbl_rows(5)  # don't print too many rows in the book
 df_pl = pl.read_csv(extracted, truncate_ragged_lines=True)
 df_pl
 ```
@@ -56,6 +59,7 @@ df_pl
 
 ``` {python}
 import pandas as pd
+
 pd.options.display.max_rows = 5
 df_pd = pd.read_csv(extracted)
 df_pd
@@ -94,16 +98,16 @@ Here are some examples:
 ::: {.panel-tabset}
 ## Polars (recommended)
 
-Using `head` and `tail`:
+Using `slice`:
 
 ``` {python}
-df_pl.select(["Dest", "Tail_Number"]).head(16).tail(4)
+df_pl.select("Dest", "Tail_Number").slice(12, 4)
 ```
 
 Or using `gather`:
 
 ``` {python}
-df_pl.select(pl.col(["Dest", "Tail_Number"]).gather(list(range(12, 16))))
+df_pl.select(pl.col("Dest", "Tail_Number").gather(list(range(12, 16))))
 ```
 
 ## Polars (square bracket)
@@ -133,7 +137,7 @@ so we just use `.filter`:
 (
     df_pl
     .filter(pl.col("IATA_CODE_Reporting_Airline").is_in(['AA', 'DL']))
-    .select(["IATA_CODE_Reporting_Airline", "Dest", "Tail_Number"])
+    .select("IATA_CODE_Reporting_Airline", "Dest", "Tail_Number")
 )
 ```
 

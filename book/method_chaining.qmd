@@ -26,7 +26,9 @@ pl.Config.set_tbl_rows(5)
 pd.options.display.max_rows = 5
 
 data_dir = Path("../data")
-extracted = data_dir / "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2022_1.csv"
+extracted = (
+    data_dir / "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2022_1.csv"
+)
 ```
 
 ## Extract city names
@@ -53,7 +55,9 @@ def extract_city_name_pd(df: pd.DataFrame) -> pl.DataFrame:
     Chicago, IL -> Chicago for OriginCityName and DestCityName
     """
     cols = ["OriginCityName", "DestCityName"]
-    return df.assign(**{col: df[col].str.split(",", regex=False).str[0] for col in cols})
+    return df.assign(
+        **{col: df[col].str.split(",", regex=False).str[0] for col in cols}
+    )
 ```
 
 :::
@@ -108,17 +112,22 @@ def time_to_datetime_pl(columns: list[str]) -> list[pl.Expr]:
 ``` {python}
 def time_col_pd(col: str, df: pd.DataFrame) -> pd.Series:
     timepart = df[col].replace("2400", "0000")
-    return pd.to_datetime(df["FlightDate"] + ' ' +
-                            timepart.str.slice(0, 2) + ':' +
-                            timepart.str.slice(2, 4),
-                            errors='coerce')
+    return pd.to_datetime(
+        df["FlightDate"]
+        + " "
+        + timepart.str.slice(0, 2)
+        + ":"
+        + timepart.str.slice(2, 4),
+        errors="coerce",
+    )
+
 
 def time_to_datetime_pd(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
-    '''
+    """
     Combine all time items into datetimes.
 
     2014-01-01,0914 -> 2014-01-01 09:14:00
-    '''
+    """
     return df.assign(**{col: time_col_pd(col, df) for col in columns})
 ```
 
@@ -164,7 +173,7 @@ Now to read the CSVs and use the functions we defined above:
 dtypes_pl = (
     {col: pl.Categorical for col in category_cols}
     | {"FlightDate": pl.Date}
-    | {col: pl.Utf8 for col in time_cols}
+    | {col: pl.String for col in time_cols}
 )
 df_pl = (
     pl.scan_csv(extracted, schema_overrides=dtypes_pl, null_values="")
@@ -212,7 +221,7 @@ Basically the `.with_columns` method is just convenient for when you don't want 
 Here's how plotting the number of daily flights looks in Polars and Pandas:
 
 ::: {.callout-note}
-Polars has [its own built-in plotting with hvPlot](https://docs.pola.rs/user-guide/misc/visualization/#built-in-plotting-with-hvplot) but the time series plots are [not great](https://github.com/holoviz/holoviews/issues/5112). Since most of the plots in this book are time series plots, we'll just use `.to_pandas()` followed by `.plot()` function after doing all the data manipulation in Polars.
+Polars has [its own built-in plotting with Altair](https://docs.pola.rs/user-guide/misc/visualization/) and supports plotting with [hvPlot](https://docs.pola.rs/user-guide/misc/visualization/#hvplot), but the time series plots are [not great](https://github.com/holoviz/holoviews/issues/5112). Since most of the plots in this book are time series plots, we'll just use `.to_pandas()` followed by `.plot()` function after doing all the data manipulation in Polars.
 :::
 
 ::: {.panel-tabset}
@@ -225,6 +234,7 @@ filter_expr = pl.col("IATA_CODE_Reporting_Airline").is_in(
     .value_counts(sort=True)
     .struct.field("IATA_CODE_Reporting_Airline")
     .head(5)
+    .implode()
 )
 (
     df_pl
@@ -245,7 +255,7 @@ filter_expr = pl.col("IATA_CODE_Reporting_Airline").is_in(
     # fill every missing hour with 0 so the plot looks better
     .upsample(time_column="DepTime", every="1h")
     .fill_null(0)
-    .select([pl.col("DepTime"), pl.col(pl.UInt32).rolling_sum(24)])
+    .select(pl.col("DepTime"), pl.col(pl.UInt32).rolling_sum(24))
     .to_pandas()
     .set_index("DepTime")
     .rename_axis("Flights per Day", axis=1)
@@ -289,7 +299,7 @@ filter_expr = pl.col("IATA_CODE_Reporting_Airline").is_in(
 
 Differences between Polars and Pandas:
 
-1. To group by a time window and another value, we use `.groupby_dynamic`. In Pandas we use .`groupby` with the `pd.Grouper` helper.
+1. To group by a time window and another value, we use `.group_by_dynamic`. In Pandas we use .`groupby` with the `pd.Grouper` helper.
 2. Instead of `.rolling(n).sum()`, Polars has `.rolling_sum(n)`.
 3. If you see Pandas code using `.unstack`, the corresponding Polars code probably needs `.pivot`.
 4. In Polars, `.value_counts` returns a `pl.Struct` column containing the value and the value count. In Pandas it returns a series where the elements are the value counts and the index contains the values themselves.
@@ -355,7 +365,7 @@ ax.set_ylim(-50, 50)
 
 :::
 
-One new thing here: [window functions](https://pola-rs.github.io/polars-book/user-guide/dsl/window_functions.html).
+One new thing here: [window functions](https://docs.pola.rs/user-guide/expressions/window-functions/).
 When Pandas code looks like:
 ```python
 .groupby("country")["population"].transform("sum")
