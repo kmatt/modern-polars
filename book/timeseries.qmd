@@ -157,7 +157,7 @@ ohlcv_pl.select(
         pl.col("time"),
         close.alias("Raw"),
         close.rolling_mean(28).alias("28D MA"),
-        close.cumulative_eval(pl.element().mean()).alias("Expanding Average"),
+        (close.cum_sum() / close.cum_count()).alias("Expanding Average"),
         close.ewm_mean(alpha=0.03).alias("EWMA($\\alpha=.03$)"),
     ]
 ).to_pandas().set_index("time").plot()
@@ -176,7 +176,7 @@ plt.ylabel("Close ($)")
 ```
 :::
 
-Polars doesn't have an `expanding_mean` or `cum_mean` yet so we make do by combining `cumulative_eval` and `mean`.
+Polars doesn't have an `expanding_mean` or `cum_mean` yet so we make do by combining `cum_sum` and `cum_count`. You could also use `cumulative_eval`, but it's much slower on large columns, and the docs recommend against it for performance reasons.
 
 ### Combining rolling aggregations
 
