@@ -18,3 +18,8 @@ dependencies = [
     "seaborn>=0.13.2",
     "statsmodels>=0.14.6",
 ]
+
+[dependency-groups]
+dev = [
+    "quarto-cli>=1.9.38",
+]
