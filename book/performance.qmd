@@ -427,7 +427,7 @@ pairs = airports.join(airports, how="cross").filter(
 
 One use case for NumPy ufuncs is doing computations that Polars expressions don't support.
 In this example Polars can do everything we need, and is significantly faster than the ufunc version.
-In a previous of this book the ufunc version was slightly faster, but Polars performance is constantly improving.
+In a previous version of this book the ufunc version was slightly faster, but Polars performance is constantly improving.
 
 ::: {.panel-tabset}
 ## Polars
