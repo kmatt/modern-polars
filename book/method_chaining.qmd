@@ -26,9 +26,7 @@ pl.Config.set_tbl_rows(5)
 pd.options.display.max_rows = 5
 
 data_dir = Path("../data")
-extracted = (
-    data_dir / "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2022_1.csv"
-)
+extracted = data_dir / "On_Time_Reporting_Carrier_On_Time_Performance_(1987_present)_2022_1.csv"
 ```
 
 ## Extract city names
@@ -55,9 +53,7 @@ def extract_city_name_pd(df: pd.DataFrame) -> pl.DataFrame:
     Chicago, IL -> Chicago for OriginCityName and DestCityName
     """
     cols = ["OriginCityName", "DestCityName"]
-    return df.assign(
-        **{col: df[col].str.split(",", regex=False).str[0] for col in cols}
-    )
+    return df.assign(**{col: df[col].str.split(",", regex=False).str[0] for col in cols})
 ```
 
 :::
@@ -112,22 +108,17 @@ def time_to_datetime_pl(columns: list[str]) -> list[pl.Expr]:
 ``` {python}
 def time_col_pd(col: str, df: pd.DataFrame) -> pd.Series:
     timepart = df[col].replace("2400", "0000")
-    return pd.to_datetime(
-        df["FlightDate"]
-        + " "
-        + timepart.str.slice(0, 2)
-        + ":"
-        + timepart.str.slice(2, 4),
-        errors="coerce",
-    )
-
+    return pd.to_datetime(df["FlightDate"] + ' ' +
+                            timepart.str.slice(0, 2) + ':' +
+                            timepart.str.slice(2, 4),
+                            errors='coerce')
 
 def time_to_datetime_pd(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
-    """
+    '''
     Combine all time items into datetimes.
 
     2014-01-01,0914 -> 2014-01-01 09:14:00
-    """
+    '''
     return df.assign(**{col: time_col_pd(col, df) for col in columns})
 ```
 
@@ -255,7 +246,7 @@ filter_expr = pl.col("IATA_CODE_Reporting_Airline").is_in(
     # fill every missing hour with 0 so the plot looks better
     .upsample(time_column="DepTime", every="1h")
     .fill_null(0)
-    .select(pl.col("DepTime"), pl.col(pl.UInt32).rolling_sum(24))
+    .select([pl.col("DepTime"), pl.col(pl.UInt32).rolling_sum(24)])
     .to_pandas()
     .set_index("DepTime")
     .rename_axis("Flights per Day", axis=1)

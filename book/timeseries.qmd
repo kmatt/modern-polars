@@ -43,28 +43,17 @@ else:
         "close",
         "volume",
     ]
-    cols_to_use = [time_col, *ohlcv_cols]
+    cols_to_use = [time_col, *ohlcv_cols] 
     cols = cols_to_use + [f"ignore_{i}" for i in range(6)]
-    ohlcv_pl = (
-        pl.from_records(resp.json(), orient="row", schema=cols)
-        .select(
-            [
-                pl.col(time_col)
-                .cast(pl.Datetime)
-                .dt.with_time_unit("ms")
-                .cast(pl.Date),
-                pl.col(ohlcv_cols).cast(pl.Float64),
-            ]
-        )
-        .set_sorted("time")
-    )
+    ohlcv_pl = pl.from_records(resp.json(), orient="row", schema=cols).select(
+        [
+            pl.col(time_col).cast(pl.Datetime).dt.with_time_unit("ms").cast(pl.Date),
+            pl.col(ohlcv_cols).cast(pl.Float64),
+        ]
+    ).set_sorted("time")
     ohlcv_pl.write_parquet(data_path)
 
-ohlcv_pd = (
-    ohlcv_pl.with_columns(pl.col("time").cast(pl.Datetime))
-    .to_pandas()
-    .set_index("time")
-)
+ohlcv_pd = ohlcv_pl.with_columns(pl.col("time").cast(pl.Datetime)).to_pandas().set_index("time")
 ```
 
 ## Filtering

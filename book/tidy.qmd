@@ -220,10 +220,10 @@ by_game_pl = (
 joined_pl = (
     by_game_pl
     .join(games_pl.collect(), on=["game_id", "date"])
-    .with_columns(
+    .with_columns([
         pl.col("home_points").alias("home_win") > pl.col("away_points"),
         pl.col("home_rest").alias("rest_spread") - pl.col("away_rest"),
-    )
+    ])
 )
 joined_pl
 ```
@@ -308,7 +308,6 @@ Plotting the win percent by rest_spread:
 ## Polars
 ``` {python}
 import matplotlib.pyplot as plt
-
 fig, ax = plt.subplots(figsize=(9, 6))
 sns.barplot(
     x="rest_spread",
@@ -379,7 +378,7 @@ ax = (
     rest_pl.pivot(index="date", values="rest", on="variable")
     .filter(pl.col("away_team") < 7)
     .sort("date")
-    .select(pl.col("date"), pl.col(pl.Float64).rolling_mean(7))
+    .select([pl.col("date"), pl.col(pl.Float64).rolling_mean(7)])
     .to_pandas()
     .set_index("date")
     .plot(figsize=(9, 6), linewidth=3)

@@ -222,9 +222,8 @@ def parse_star_pl(col: pl.Expr) -> pl.Expr:
 def feet_to_cm_pl(col: pl.Expr) -> pl.Expr:
     feet_inches_split = col.str.split_exact("'", 1)
     total_inches = (
-        feet_inches_split.struct.field("field_0").cast(pl.UInt8, strict=False) * 12
-    ) + feet_inches_split.struct.field("field_1").str.strip_chars_end('"').cast(
-        pl.UInt8, strict=False
+        (feet_inches_split.struct.field("field_0").cast(pl.UInt8, strict=False) * 12)
+        + feet_inches_split.struct.field("field_1").str.strip_chars_end('"').cast(pl.UInt8, strict=False)
     )
     return (total_inches * 2.54).round(0).cast(pl.UInt8)
 
@@ -277,10 +276,15 @@ def parse_date_pd(col: pd.Series) -> pd.Series:
 
 def parse_suffixed_num_pd(col: pd.Series) -> pd.Series:
     suffix_value = (
-        col.str[-1].map({"K": 1_000, "M": 1_000_000}).fillna(1).astype("uint32")
+        col
+        .str[-1]
+        .map({"K": 1_000, "M": 1_000_000})
+        .fillna(1)
+        .astype("uint32")
     )
     without_suffix = (
-        col.str.replace("K", "", regex=False)
+        col
+        .str.replace("K", "", regex=False)
         .str.replace("M", "", regex=False)
         .astype("float")
     )
@@ -308,28 +312,20 @@ def parse_height_pd(col: pd.Series) -> pd.Series:
 
 def parse_weight_pd(col: pd.Series) -> pd.Series:
     is_kg = col.str.endswith("kg")
-    without_unit = (
-        col.where(is_kg, col.str[:-3]).mask(is_kg, col.str[:-2]).astype("uint8")
-    )
+    without_unit = col.where(is_kg, col.str[:-3]).mask(is_kg, col.str[:-2]).astype("uint8")
     return without_unit.where(is_kg, without_unit.mul(0.453592).round().astype("uint8"))
 
 def parse_contract_pd(df: pd.DataFrame) -> pd.DataFrame:
     contract_col = df["Contract"]
     contains_tilde = contract_col.str.contains(" ~ ", regex=False)
     split = (
-        contract_col.loc[contains_tilde]
-        .str.split(" ~ ", expand=True)
-        .astype(pd.UInt16Dtype())
+        contract_col.loc[contains_tilde].str.split(" ~ ", expand=True).astype(pd.UInt16Dtype())
     )
     split.columns = ["contract_start", "contract_end"]
     not_tilde = contract_col.loc[~contains_tilde]
     free_agent = (contract_col == "Free").rename("free_agent").fillna(False)
-    loan_date = parse_date_pd(not_tilde.loc[~free_agent].str[:-8]).rename(
-        "loan_date_start"
-    )
-    return pd.concat(
-        [df.drop("Contract", axis=1), split, free_agent, loan_date], axis=1
-    )
+    loan_date = parse_date_pd(not_tilde.loc[~free_agent].str[:-8]).rename("loan_date_start")
+    return pd.concat([df.drop("Contract", axis=1), split, free_agent, loan_date], axis=1)
 ```
 
 :::

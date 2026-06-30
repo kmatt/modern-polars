@@ -74,8 +74,9 @@ async def download_and_save_indiv(year: str, client: httpx.AsyncClient):
             encoding="cp1252",
         ).with_columns(
             pl.col("TRANSACTION_DT").str.to_date(format="%m%d%Y", strict=False)
-        ).write_parquet(fec_dir / f"indiv{year}.pq")
-
+        ).write_parquet(
+            fec_dir / f"indiv{year}.pq"
+        )
 
 years = ["08", "10", "12", "14", "16"]
 if not fec_dir.exists():
@@ -335,7 +336,7 @@ Resampling is another useful way to get our data down to a manageable size:
 ## Polars
 ``` {python}
 daily_pl = (
-    indiv_pl.select("TRANSACTION_DT", "TRANSACTION_AMT")
+    indiv_pl.select(["TRANSACTION_DT", "TRANSACTION_AMT"])
     .drop_nulls()
     .sort("TRANSACTION_DT")
     .group_by_dynamic("TRANSACTION_DT", every="1d")
@@ -387,8 +388,7 @@ Polars joins work in streaming mode. Let's add join the donations data with the 
 cm_pl = (
     pl.scan_parquet(fec_dir / "cm*.pq")
     # Some committees change their name, but the ID stays the same
-    .group_by("CMTE_ID", maintain_order=True)
-    .last()
+    .group_by("CMTE_ID", maintain_order=True).last()
 )
 cm_pl.collect(engine="streaming")
 ```
@@ -445,6 +445,7 @@ party_donations_pl = (
     .sort(["TRANSACTION_DT", "CMTE_PTY_AFFILIATION"])
     .collect(engine="streaming")
 )
+
 ```
 ## Dask
 ``` {python}
@@ -466,14 +467,16 @@ Plotting daily donations:
 ## Polars
 ``` {python}
 ax = (
-    party_donations_pl.pivot(
+    party_donations_pl
+    .pivot(
         index="TRANSACTION_DT", on="CMTE_PTY_AFFILIATION", values="TRANSACTION_AMT"
     )[1:, :]
     .select(
         [pl.col("TRANSACTION_DT"), pl.col(pl.Int32).rolling_mean(30, min_samples=0)]
     )
     .to_pandas()
-    .set_index("TRANSACTION_DT")[["DEM", "REP"]]
+    .set_index("TRANSACTION_DT")
+    [["DEM", "REP"]]
     .plot(color=["C0", "C3"], figsize=(12, 6), linewidth=3)
 )
 ax.set(title="Daily Donations (30-D Moving Average)", xlabel="Date")
