@@ -14,7 +14,7 @@ By now you should have a good idea of what Polars can do and how it compares to 
 
 ### Bugs (maybe)
 
-As of June 2026 Polars has ~2.5 thousand open issues marked as bugs.
+As of June 2026 Polars has ~2500 open issues marked as bugs.
 This is not so bad when you consider that Pandas has 500 more than that.
 But maybe you already use Pandas and are well-acquainted with these bugs.
 
