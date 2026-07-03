@@ -1,6 +1,6 @@
 # Performance
 
-As you've probably heard by now, [Polars is very very fast](https://www.pola.rs/benchmarks.html).
+As you've probably heard by now, [Polars is very very fast](https://pola.rs/posts/benchmarks/).
 Well-written Polars is quicker than well-written Pandas, and it's easier to write Polars well. With that in mind...
 
 ## Six fairly obvious performance rules
@@ -158,7 +158,7 @@ Here are the initial dtypes for the two dataframes:
 ``` {python}
 # can't use UInt8/16 in scan_csv
 dtypes_pl = (
-    {col: pl.Utf8 for col in initially_str_cols_pl}
+    {col: pl.String for col in initially_str_cols_pl}
     | {col: pl.Categorical for col in initial_category_cols_pl}
     | {col: pl.UInt32 for col in [*u32_cols, *u16_cols, *u8_cols]}
 )
@@ -178,14 +178,14 @@ dtypes_pd = (
 One thing I'll note here is that Pandas numeric types are somewhat confusing: `"uint32"` means `np.uint32` which is not the same thing as `pd.UInt32Dtype()`. Only the latter is nullable. On the other hand, Polars has just one unsigned 32-bit integer type, and it's nullable.
 
 ::: {.callout-tip}
-Polars expressions have a [`shrink_dtype`](https://pola-rs.github.io/polars/py-polars/html/reference/expressions/api/polars.Expr.shrink_dtype.html#polars-expr-shrink-dtype) method that can be more convenient than manually specifying the dtypes yourself. It's not magic though, and it has to spend time finding the min and max of the column.
+Polars expressions have a [`shrink_dtype`](https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.Expr.shrink_dtype.html) method that can be more convenient than manually specifying the dtypes yourself. It's not magic though, and it has to spend time finding the min and max of the column.
 :::
 
 
 
 ### Data cleaning
 
-There's not much that you haven't seen here already, so we won't explain the code line by line. The main new thing here is [`pl.when`](https://pola-rs.github.io/polars/py-polars/html/reference/expressions/api/polars.when.html#polars.when) for ternary expressions.
+There's not much that you haven't seen here already, so we won't explain the code line by line. The main new thing here is [`pl.when`](https://docs.pola.rs/api/python/stable/reference/expressions/api/polars.when.html) for ternary expressions.
 
 ::: {.panel-tabset}
 ## Polars
@@ -332,7 +332,7 @@ def parse_contract_pd(df: pd.DataFrame) -> pd.DataFrame:
 
 ### Performance comparison
 
-In this example, **Polars is ~150x faster than Pandas**:
+In this example, **Polars is ~23x faster than Pandas**:
 
 ::: {.panel-tabset}
 ## Polars
@@ -358,7 +358,7 @@ fifa_pl = (
     .with_columns(new_cols_pl)
     .drop("Contract")
     .rename({"↓OVA": "OVA"})
-    .collect()
+    .collect(engine="streaming")
 )
 ```
 
@@ -400,7 +400,7 @@ fifa_pd.head()
 :::
 
 
-You could play around with the timings here and even try the [`.profile`](https://pola-rs.github.io/polars/py-polars/html/reference/lazyframe/api/polars.LazyFrame.profile.html) method to see what Polars spends its time on. In this scenario the speed advantage of Polars likely comes down to three things:
+You could play around with the timings here and even try the [`.profile`](https://docs.pola.rs/api/python/stable/reference/lazyframe/api/polars.LazyFrame.profile.html) method to see what Polars spends its time on. In this scenario the speed advantage of Polars likely comes down to three things:
 
 1. It is much faster at reading CSVs.
 2. It is much faster at processing strings.
@@ -416,7 +416,7 @@ We create a lazy dataframe containing pairs of airports and their coordinates:
 
 ``` {python}
 airports = pl.scan_csv("../data/airports.csv").drop_nulls().unique(subset=["AIRPORT"])
-pairs = airports.join(airports, on="AIRPORT", how="cross").filter(
+pairs = airports.join(airports, how="cross").filter(
     (pl.col("AIRPORT") != pl.col("AIRPORT_right"))
     & (pl.col("LATITUDE") != pl.col("LATITUDE_right"))
     & (pl.col("LONGITUDE") != pl.col("LONGITUDE_right"))
@@ -425,7 +425,9 @@ pairs = airports.join(airports, on="AIRPORT", how="cross").filter(
 
 ### Calculate great-circle distance
 
-One use case for NumPy ufuncs is doing computations that Polars expressions don't support. In this example Polars can do everything we need, though the ufunc version ends up being slightly faster:
+One use case for NumPy ufuncs is doing computations that Polars expressions don't support.
+In this example Polars can do everything we need, and is significantly faster than the ufunc version.
+In a previous version of this book the ufunc version was slightly faster, but Polars performance is constantly improving.
 
 ::: {.panel-tabset}
 ## Polars
@@ -491,7 +493,7 @@ pairs.select(
 ).collect()
 ```
 
-This may not be a huge performance difference, but it at least means you don't sacrifice speed when relying on NumPy. There are some [gotchas](https://pola-rs.github.io/polars-book/user-guide/expressions/numpy/#interoperability) though so watch out for those.
+Here the pure Polars version is several times faster, so you're generally better off reaching for native expressions. Still, it's good to know that NumPy ufuncs interoperate seamlessly for the cases where Polars doesn't have a built-in for what you need. There are some [gotchas](https://docs.pola.rs/user-guide/expressions/numpy-functions/#interoperability) though so watch out for those.
 
 Also watch out for `.to_numpy()` - you don't always need to call this and it can slow things down:
 
@@ -530,7 +532,7 @@ rand_df_pl = create_frame(50_000_000, 50_000)
 rand_df_pd = rand_df_pl.to_pandas()
 ```
 
-The Polars version tends to be 10-100% slower on my machine:
+In a previous version of this book the Polars version was 10-100% slower than Pandas, but with the most recent (at time of writing) versions of both Polars is ~2.3x faster.
 
 ::: {.panel-tabset}
 ## Polars
@@ -543,14 +545,15 @@ The Polars version tends to be 10-100% slower on my machine:
 ```
 :::
 
-This example isn't telling you to use Pandas in this specific situation. Once you add in the time spent reading a file, Polars likely wins.
+This example isn't telling you to use Pandas in this specific situation.
+Once you add in the time spent reading a file, the Polars speedup likely increases.
 
-And even here, if you sort by the `name` col, Polars wins again. It has fast-track algorithms for sorted data.
+And even here, if you sort by the `name` col, Polars wins by a larger margin. It has fast-track algorithms for sorted data.
 
 
 ## Summary
 
 - Polars is really fast. Pandas was already respectably fast and Polars wipes the floor with it.
 - You can still make Polars slow if you do silly things with it, but compared to Pandas it's easier to do the right thing in the first place.
-- Polars works well with NumPy ufuncs.
+- Polars works well with NumPy ufuncs, but prefer native Polars expressions when possible.
 - There are still some situations where Pandas can be faster. They are probably not compelling, but we shouldn't pretend they don't exist.

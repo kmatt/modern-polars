@@ -98,10 +98,10 @@ games_pd.head()
 ```
 :::
 
-Polars does have a [`drop_nulls`](https://pola-rs.github.io/polars/py-polars/html/reference/dataframe/api/polars.DataFrame.drop_nulls.html#polars.DataFrame.drop_nulls) method but the only parameter it takes is `subset`, which — like in Pandas — lets you consider null values just for a subset of the columns. Pandas additionally lets you specify `how="all"` to drop a row only if every value is null, but Polars `drop_nulls` has no such parameter and will drop the row if *any* values are null. If you only want to drop when all values are null, the docs recommend `.filter(~pl.all(pl.all().is_null()))`.
+Polars does have a [`drop_nulls`](https://docs.pola.rs/api/python/stable/reference/dataframe/api/polars.DataFrame.drop_nulls.html) method but the only parameter it takes is `subset`, which — like in Pandas — lets you consider null values just for a subset of the columns. Pandas additionally lets you specify `how="all"` to drop a row only if every value is null, but Polars `drop_nulls` has no such parameter and will drop the row if *any* values are null. If you only want to drop when all values are null, the docs recommend `.filter(~pl.all_horizontal(pl.all().is_null()))`.
 
 ::: {.callout-note}
-A previous version of the Polars example used [`pl.fold`](https://pola-rs.github.io/polars-book/user-guide/dsl/folds.html), which is for fast horizontal operations. It doesn't come up anywhere else in this book, so consider this your warning that it exists.
+A previous version of the Polars example used [`pl.fold`](https://docs.pola.rs/user-guide/expressions/folds/), which is for fast horizontal operations. It doesn't come up anywhere else in this book, so consider this your warning that it exists.
 :::
 
 ## Pivot and Melt
@@ -527,7 +527,8 @@ wins_to_plot_pl = (
         ]
     )
 )
-sns.regplot(data=wins_to_plot_pl, x='Overall %', y='Home Win % - Away %')
+# Have to convert to pandas to get the Seaborn labels to show here
+sns.regplot(data=wins_to_plot_pl.to_pandas(), x='Overall %', y='Home Win % - Away %')
 ```
 ## Pandas
 ``` {python}

@@ -164,7 +164,7 @@ Now to read the CSVs and use the functions we defined above:
 dtypes_pl = (
     {col: pl.Categorical for col in category_cols}
     | {"FlightDate": pl.Date}
-    | {col: pl.Utf8 for col in time_cols}
+    | {col: pl.String for col in time_cols}
 )
 df_pl = (
     pl.scan_csv(extracted, schema_overrides=dtypes_pl, null_values="")
@@ -212,7 +212,7 @@ Basically the `.with_columns` method is just convenient for when you don't want 
 Here's how plotting the number of daily flights looks in Polars and Pandas:
 
 ::: {.callout-note}
-Polars has [its own built-in plotting with hvPlot](https://docs.pola.rs/user-guide/misc/visualization/#built-in-plotting-with-hvplot) but the time series plots are [not great](https://github.com/holoviz/holoviews/issues/5112). Since most of the plots in this book are time series plots, we'll just use `.to_pandas()` followed by `.plot()` function after doing all the data manipulation in Polars.
+Polars has [its own built-in plotting with Altair](https://docs.pola.rs/user-guide/misc/visualization/) and supports plotting with [hvPlot](https://docs.pola.rs/user-guide/misc/visualization/#hvplot), but the time series plots are [not great](https://github.com/holoviz/holoviews/issues/5112). Since most of the plots in this book are time series plots, we'll just use `.to_pandas()` followed by `.plot()` function after doing all the data manipulation in Polars.
 :::
 
 ::: {.panel-tabset}
@@ -225,6 +225,7 @@ filter_expr = pl.col("IATA_CODE_Reporting_Airline").is_in(
     .value_counts(sort=True)
     .struct.field("IATA_CODE_Reporting_Airline")
     .head(5)
+    .implode()
 )
 (
     df_pl
@@ -289,7 +290,7 @@ filter_expr = pl.col("IATA_CODE_Reporting_Airline").is_in(
 
 Differences between Polars and Pandas:
 
-1. To group by a time window and another value, we use `.groupby_dynamic`. In Pandas we use .`groupby` with the `pd.Grouper` helper.
+1. To group by a time window and another value, we use `.group_by_dynamic`. In Pandas we use .`groupby` with the `pd.Grouper` helper.
 2. Instead of `.rolling(n).sum()`, Polars has `.rolling_sum(n)`.
 3. If you see Pandas code using `.unstack`, the corresponding Polars code probably needs `.pivot`.
 4. In Polars, `.value_counts` returns a `pl.Struct` column containing the value and the value count. In Pandas it returns a series where the elements are the value counts and the index contains the values themselves.
@@ -355,7 +356,7 @@ ax.set_ylim(-50, 50)
 
 :::
 
-One new thing here: [window functions](https://pola-rs.github.io/polars-book/user-guide/dsl/window_functions.html).
+One new thing here: [window functions](https://docs.pola.rs/user-guide/expressions/window-functions/).
 When Pandas code looks like:
 ```python
 .groupby("country")["population"].transform("sum")

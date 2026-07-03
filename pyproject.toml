@@ -1,0 +1,25 @@
+[project]
+name = "modern-polars"
+version = "0.1.0"
+description = "Modern Polars: a side-by-side comparison of Polars and pandas."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "dask[dataframe]>=2026.6.0",
+    "fsspec>=2026.6.0",
+    "httpx>=0.28.0",
+    "ipykernel>=6.30.0",
+    "matplotlib>=3.11.0",
+    "numpy>=2.4.6",
+    "pandas>=3.0.3",
+    "polars>=1.41.2",
+    "pyarrow>=24.0.0",
+    "requests>=2.32.0",
+    "seaborn>=0.13.2",
+    "statsmodels>=0.14.6",
+]
+
+[dependency-groups]
+dev = [
+    "quarto-cli>=1.9.38",
+]

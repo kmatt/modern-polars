@@ -43,23 +43,23 @@ Meanwhile the text content and the Polars examples are from me.
 
 ## Running the code yourself
 
-You can install the exact packages that the book uses with the [env.yml](https://github.com/kevinheavey/modern-polars/blob/master/env.yml) file:
+You can install the exact packages that the book uses with the [pyproject.toml](https://github.com/kevinheavey/modern-polars/blob/master/pyproject.toml) file:
 
 ```shell
-mamba env create -f env.yml
+uv sync
 ```
 
-If you're not using mamba/conda you can install the following package versions and it should work:
+If you're not using uv you can install the following package versions and it should work:
 
 ```
-polars: 1.0.0
-pyarrow: 10.0.1
-pandas: 2.2.2
-numpy: 1.26.4
-fsspec: 2024.6.1
-matplotlib: 3.8.0
+polars: 1.41.2
+pyarrow: 24.0.0
+pandas: 3.0.3
+numpy: 2.4.6
+fsspec: 2026.6.0
+matplotlib: 3.11.0
 seaborn: 0.13.2
-statsmodels: 0.14.2
+statsmodels: 0.14.6
 ```
 
 ### Data

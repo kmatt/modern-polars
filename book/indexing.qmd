@@ -37,7 +37,7 @@ extracted = data_dir / "On_Time_Reporting_Carrier_On_Time_Performance_(1987_pres
 ## Read the data
 
 :::{.callout-tip}
-The examples in this book use the [lazy evaluation](https://pola-rs.github.io/polars/user-guide/migration/pandas/#be-lazy)
+The examples in this book use the [lazy evaluation](https://docs.pola.rs/user-guide/migration/pandas/#be-lazy)
 feature of Polars less than you should.
 It's just inconvenient to use the lazy API when displaying dozens of intermediate results for educational purposes.
 :::
@@ -94,10 +94,10 @@ Here are some examples:
 ::: {.panel-tabset}
 ## Polars (recommended)
 
-Using `head` and `tail`:
+Using `slice`:
 
 ``` {python}
-df_pl.select(["Dest", "Tail_Number"]).head(16).tail(4)
+df_pl.select(["Dest", "Tail_Number"]).slice(12, 4)
 ```
 
 Or using `gather`:

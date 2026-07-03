@@ -14,8 +14,9 @@ By now you should have a good idea of what Polars can do and how it compares to 
 
 ### Bugs (maybe)
 
-As of July 2024 Polars has a few hundred open issues marked as bugs. This is not so bad when you consider
-that Pandas has three times that number. But maybe you already use Pandas and are well-acquainted with these bugs.
+As of June 2026 Polars has ~2500 open issues marked as bugs.
+This is not so bad when you consider that Pandas has 500 more than that.
+But maybe you already use Pandas and are well-acquainted with these bugs.
 
 
 ### If it ain't broke, don't fix it
@@ -25,5 +26,7 @@ Suppose you have a bunch of important stuff in another library that works fine, 
 ## Other cool stuff you might like
 
 - [r-polars](https://github.com/pola-rs/r-polars), a work-in-progress project bringing Polars to R.
-- [tidypolars](https://github.com/markfairbanks/tidypolars): an API for py-polars that should be familiar to R Tidyverse users.
+- [tidypolars](https://github.com/markfairbanks/tidypolars): an API for py-polars that should be familiar to R Tidyverse users. (NB: This was last updated in 2024, so it may be a bit out of date.)
+- [Narwhals](https://github.com/narwhals/narwhals): a lightweight compatibility layer between dataframe libraries.
+- [Polars Cloud](https://cloud.pola.rs/): a "pay-as-you-go" service for running Polars on the cloud, with support for AWS and on-premises Kubernetes.
 - [DuckDB](https://duckdb.org/): not a dataframe library, but can do a lot of what Polars does and is often mentioned in the same breath.

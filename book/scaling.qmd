@@ -2,14 +2,20 @@
 
 In this chapter we'll mostly compare Polars to Dask rather than to Pandas. This isn't an apples-to-apples comparison, because Dask helps scale Pandas but it [might help scale Polars too one day](https://twitter.com/RitchieVink/status/1598759986271748107?s=20&t=xBNrw_C9wOU5ddf0wW0XpQ). Dask, like Spark, can run on a single node or on a cluster with thousands of nodes.
 
-Polars doesn't come with any tooling for running on a cluster, but it does have a streaming mode for larger-than-memory datasets on a single machine. It also uses memory more efficiently than Pandas. These two things mean you can use Polars for much bigger data than Pandas can handle, and hopefully you won't need tools like Dask or Spark until you're actually running on a cluster.
+Polars [launched its cloud offering in September 2025](https://pola.rs/posts/polars-cloud-launch/) with support for AWS, with on-premises support [announced in June 2026](https://pola.rs/posts/polars-distributed-available-on-kubernetes/).
+However, at the time of writing, these are not free offerings, and open source Polars is still single-node only.
+
+Polars does have a streaming mode for larger-than-memory datasets on a single machine.
+It also uses memory more efficiently than Pandas.
+These two things mean you can use Polars for much bigger data than Pandas can handle, and hopefully you won't need tools like Dask or Spark until you're actually running on a cluster.
 
 :::{.callout-note}
 I use "Dask" here as a shorthand for `dask.dataframe`. Dask does [a bunch of other stuff too](https://docs.dask.org/en/stable/).
 :::
 
 :::{.callout-warning}
-The streaming features of Polars are very new at the time of writing, so approach with caution!
+In older versions of Polars, streaming mode was enabled by passing `streaming=True` to `collect`, but in newer versions you should pass `engine="streaming"`.
+The old way still works but is deprecated and will be removed in a future version.
 :::
 
 ## Get the data
@@ -44,15 +50,15 @@ async def download_and_save_cm(year: str, client: httpx.AsyncClient):
             columns=[0, 1, 10],
             new_columns=cm_cols,
             separator="|",
-            dtypes=dtypes,
+            schema_overrides=dtypes,
         ).write_parquet(fec_dir / f"cm{year}.pq")
 
 async def download_and_save_indiv(year: str, client: httpx.AsyncClient):
     dtypes = {
-        "CMTE_ID": pl.Utf8,
+        "CMTE_ID": pl.String,
         "EMPLOYER": pl.Categorical,
         "OCCUPATION": pl.Categorical,
-        "TRANSACTION_DT": pl.Utf8,
+        "TRANSACTION_DT": pl.String,
         "TRANSACTION_AMT": pl.Int32,
     }
     url = f"https://www.fec.gov/files/bulk-downloads/20{year}/indiv{year}.zip"
@@ -64,7 +70,7 @@ async def download_and_save_indiv(year: str, client: httpx.AsyncClient):
             columns=[0, 11, 12, 13, 14],
             new_columns=list(dtypes.keys()),
             separator="|",
-            dtypes=dtypes,
+            schema_overrides=dtypes,
             encoding="cp1252",
         ).with_columns(
             pl.col("TRANSACTION_DT").str.to_date(format="%m%d%Y", strict=False)
@@ -92,12 +98,10 @@ We can solve this using Polars streaming, using Dask's lazy dataframe or simply 
 ## Polars
 
 ``` {python}
-# otherwise we can't read categoricals from multiple files
-pl.enable_string_cache()
 occupation_counts_pl = (
     pl.scan_parquet(fec_dir / "indiv*.pq", cache=False)
     .select(pl.col("OCCUPATION").value_counts(parallel=True, sort=True))
-    .collect(streaming=True)
+    .collect(engine="streaming")
 )
 occupation_counts_pl
 ```
@@ -130,7 +134,7 @@ total_counts_pd.nlargest(100)
 :::
 
 ::: {.callout-note}
-Polars can handle some larger-than-memory data even without streaming. Thanks to [predicate pushdown](https://pola-rs.github.io/polars-book/user-guide/lazy/optimizations/), we can filter dataframes without reading all the data into memory first. So `streaming` mode is most useful for cases where we really do need to read in a lot of data.
+Polars can handle some larger-than-memory data even without streaming. Thanks to [predicate pushdown](https://docs.pola.rs/user-guide/lazy/optimizations/), we can filter dataframes without reading all the data into memory first. So `streaming` mode is most useful for cases where we really do need to read in a lot of data.
 :::
 
 
@@ -162,8 +166,7 @@ avg_by_occupation_lazy_pl = (
 
 avg_transaction_pl, total_by_employer_pl, avg_by_occupation_pl = pl.collect_all(
     [avg_transaction_lazy_pl, total_by_employer_lazy_pl, avg_by_occupation_lazy_pl],
-    streaming=True,
-    comm_subplan_elim=False, # cannot use CSE with streaming
+    engine="streaming",
 )
 ```
 
@@ -190,10 +193,10 @@ avg_transaction_dd, total_by_employer_dd, avg_by_occupation_dd = compute(
 
 ```
 :::
-The Polars code above tends to be ~3.5x faster than Dask on my machine, which if anything is a smaller speedup than I expected. 
+The Polars code above tends to be ~10x faster than Dask on my machine.
 
-We should also profile memory usage, since it could be the case that Polars is just running faster because it's reading in bigger chunks. According to the [`fil`](https://pythonspeed.com/fil/docs/index.html)
-profiler, the Dask example's memory usage peaks at 1450 MiB, while Polars uses ~10% more than that.
+We should also profile memory usage, since it could be the case that Polars is just running faster because it's reading in bigger chunks.
+According to the [`memray`](https://github.com/bloomberg/memray) profiler, the Dask example's memory usage peaks at ~4.0 GB, while Polars peaks at ~1.6 GB, so Polars wins on memory too.
 
 Before I forget, here are the results of our computations:
 
@@ -276,8 +279,7 @@ donations_pl_lazy = (
 )
 total_avg_pl, occupation_avg_pl = pl.collect_all(
     [indiv_pl.select(pl.col("TRANSACTION_AMT").mean()), donations_pl_lazy],
-    streaming=True,
-    comm_subplan_elim=False
+    engine="streaming",
 )
 ```
 
@@ -344,7 +346,7 @@ daily_pl = (
         .is_between(date(2011, 1, 1), date(2017, 1, 1), closed="left")
     )
     .with_columns(pl.col("TRANSACTION_AMT") / 1000)
-    .collect(streaming=True)
+    .collect(engine="streaming")
 )
 ax = (
     daily_pl.select(
@@ -384,13 +386,11 @@ Polars joins work in streaming mode. Let's add join the donations data with the 
 ## Polars
 ``` {python}
 cm_pl = (
-    # This data is small so we don't use streaming.
-    # Also, .last isn't available in lazy mode.
-    pl.read_parquet(fec_dir / "cm*.pq")
+    pl.scan_parquet(fec_dir / "cm*.pq")
     # Some committees change their name, but the ID stays the same
     .group_by("CMTE_ID", maintain_order=True).last()
 )
-cm_pl
+cm_pl.collect(engine="streaming")
 ```
 
 ## Dask
@@ -421,7 +421,7 @@ indiv_filtered_pl = indiv_pl.filter(
         date(2007, 1, 1), date(2017, 1, 1), closed="both"
     )
 )
-merged_pl = indiv_filtered_pl.join(cm_pl.lazy(), on="CMTE_ID")
+merged_pl = indiv_filtered_pl.join(cm_pl, on="CMTE_ID")
 ```
 
 ## Dask
@@ -443,7 +443,7 @@ party_donations_pl = (
     merged_pl.group_by(["TRANSACTION_DT", "CMTE_PTY_AFFILIATION"])
     .agg(pl.col("TRANSACTION_AMT").sum())
     .sort(["TRANSACTION_DT", "CMTE_PTY_AFFILIATION"])
-    .collect(streaming=True)
+    .collect(engine="streaming")
 )
 
 ```
@@ -472,7 +472,7 @@ ax = (
         index="TRANSACTION_DT", on="CMTE_PTY_AFFILIATION", values="TRANSACTION_AMT"
     )[1:, :]
     .select(
-        [pl.col("TRANSACTION_DT"), pl.col(pl.Int32).rolling_mean(30, min_periods=0)]
+        [pl.col("TRANSACTION_DT"), pl.col(pl.Int32).rolling_mean(30, min_samples=0)]
     )
     .to_pandas()
     .set_index("TRANSACTION_DT")
@@ -495,3 +495,9 @@ ax = (
 ax.set(title="Daily Donations (30-D Moving Average)", xlabel="Date")
 ```
 :::
+
+## Polars vs PySpark
+
+The Polars team released a [benchmark comparing Polars to PySpark in June 2026](https://pola.rs/posts/polars-pyspark-benchmarks/), looking at single node and distributed performance on AWS.
+In the single node benchmark Polars was ~6.4x faster than PySpark, ranging from 3x to 38x faster per query.
+In the distributed benchmark Polars was ~3.2x faster than PySpark, ranging from 1.6x to 7.7x faster per query.
