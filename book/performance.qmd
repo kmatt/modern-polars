@@ -493,7 +493,7 @@ pairs.select(
 ).collect()
 ```
 
-This may not be a huge performance difference, but it at least means you don't sacrifice speed when relying on NumPy. There are some [gotchas](https://docs.pola.rs/user-guide/expressions/numpy-functions/#interoperability) though so watch out for those.
+Here the pure Polars version is several times faster, so you're generally better off reaching for native expressions. Still, it's good to know that NumPy ufuncs interoperate seamlessly for the cases where Polars doesn't have a built-in for what you need. There are some [gotchas](https://docs.pola.rs/user-guide/expressions/numpy-functions/#interoperability) though so watch out for those.
 
 Also watch out for `.to_numpy()` - you don't always need to call this and it can slow things down:
 

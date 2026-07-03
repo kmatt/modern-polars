@@ -196,7 +196,7 @@ avg_transaction_dd, total_by_employer_dd, avg_by_occupation_dd = compute(
 The Polars code above tends to be ~7x faster than Dask on my machine. 
 
 We should also profile memory usage, since it could be the case that Polars is just running faster because it's reading in bigger chunks.
-According to the [`memray`](https://github.com/bloomberg/memray) profiler, the Dask example's memory usage peaks at 4.0 GB, while Polars peaks at 2.3 GB.
+Looking at peak resident memory, the Dask example peaks at ~3.0 GB, while Polars peaks at ~1.0 GB, so Polars wins on memory too. (You can dig into allocations in more detail with a profiler like [`memray`](https://github.com/bloomberg/memray).)
 
 Before I forget, here are the results of our computations:
 
