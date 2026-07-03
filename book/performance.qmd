@@ -332,7 +332,7 @@ def parse_contract_pd(df: pd.DataFrame) -> pd.DataFrame:
 
 ### Performance comparison
 
-In this example, **Polars is ~8x faster than Pandas**:
+In this example, **Polars is ~23x faster than Pandas**:
 
 ::: {.panel-tabset}
 ## Polars
@@ -532,7 +532,7 @@ rand_df_pl = create_frame(50_000_000, 50_000)
 rand_df_pd = rand_df_pl.to_pandas()
 ```
 
-In a previous version of this book the Polars version was 10-100% slower than Pandas, but with the most recent (at time of writing) versions of both Polars is ~10% faster.
+In a previous version of this book the Polars version was 10-100% slower than Pandas, but with the most recent (at time of writing) versions of both Polars is ~2.3x faster.
 
 ::: {.panel-tabset}
 ## Polars
